@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>三平方の裁ち合わせパズル ― 型紙</title>
+<link rel="icon" type="image/png" href="./icon.png">
+<link rel="apple-touch-icon" href="./icon-180.png">
+<style>
+body{font-family:'Yu Gothic','Hiragino Sans',sans-serif; color:#000; margin:16px;}
+h1{font-size:17pt; margin:0 0 2mm;} h2{font-size:12.5pt; margin:5mm 0 1.5mm;} p{font-size:10pt; margin:1mm 0;}
+svg{display:block;} .cutline{stroke:#000; fill:none;}
+.note{font-size:10.5pt; color:#444; border:1px solid #999; border-radius:2mm; padding:2.5mm 3mm; margin-bottom:5mm;}
+.pbtn{font-size:13pt; font-weight:700; padding:2.5mm 8mm; margin-bottom:5mm; border:2px solid #2f5da3; border-radius:2.5mm; background:#fff; color:#2f5da3; cursor:pointer;}
+@page{margin:12mm;} @media print{ .note, .pbtn{display:none;} }
+@media screen{ svg{max-width:100%; height:auto;} }
+</style>
+</head>
+<body>
+<div class="note">印刷専用のページです。下の「印刷する」ボタンを押すと印刷ダイアログが開きます。<br>もし印刷物が白くなる場合は、<a href="print-4.pdf">PDF版（print-4.pdf）</a>を開いて、共有ボタンから「プリント」を選んでください。</div>
+<button class="pbtn" onclick="window.print()">印刷する</button>
+<h1>三平方の裁ち合わせパズル ― 型紙</h1><p>④ 赤十字を正方形に（古典 ― ギリシャ十字（ヒンドゥー問題））</p><h2>1. 元の図形 ― 線に沿って切り分けてください</h2><p>赤十字（正方形5枚・ギリシャ十字）</p><svg xmlns="http://www.w3.org/2000/svg" width="90.0mm" height="90.0mm" viewBox="0 0 3.00 3.00"><polygon points="1.000,0.500 1.000,1.000 0.000,1.000 0.500,2.000 1.000,2.000 1.000,3.000 2.000,2.500 2.000,2.000 3.000,2.000 2.500,1.000 2.000,1.000 2.000,0.000" class="cutline" stroke-width="0.047"></polygon><polygon points="3.000,2.000 3.000,1.000 2.500,1.000" class="cutline" stroke-width="0.047"></polygon><polygon points="2.000,0.000 1.000,0.000 1.000,0.500" class="cutline" stroke-width="0.047"></polygon><polygon points="0.000,1.000 0.000,2.000 0.500,2.000" class="cutline" stroke-width="0.047"></polygon><polygon points="1.000,3.000 2.000,3.000 2.000,2.500" class="cutline" stroke-width="0.047"></polygon></svg><h2>2. 完成形の枠 ― この形に組み替えてください</h2><p>正方形（1辺 √5）</p><svg xmlns="http://www.w3.org/2000/svg" width="67.1mm" height="67.1mm" viewBox="0 0 2.24 2.24"><polygon points="0.000,2.236 2.236,2.236 2.236,0.000 0.000,0.000" class="cutline" stroke-width="0.047"></polygon></svg><h2>3. 実寸の確認</h2><p>下の線がちょうど5cmになっていれば、実寸で印刷されています。</p><svg xmlns="http://www.w3.org/2000/svg" width="60mm" height="8mm" viewBox="0 0 60 8"><line x1="5" y1="2" x2="55" y2="2" stroke="#000" stroke-width="0.6"></line><line x1="5" y1="0" x2="5" y2="4" stroke="#000" stroke-width="0.6"></line><line x1="55" y1="0" x2="55" y2="4" stroke="#000" stroke-width="0.6"></line><text x="30" y="7.6" font-size="3.2" text-anchor="middle" fill="#000">5 cm</text></svg>
+</body>
+</html>
