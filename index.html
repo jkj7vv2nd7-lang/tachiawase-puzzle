@@ -89,7 +89,7 @@
 <header>
   <h1>三平方の裁ち合わせパズル</h1>
   <p class="tagline">動かして、回して、三平方の定理を組み立てる</p>
-  <p class="ver" style="font-size:11px; color:var(--mut); margin:2px 0 0;">バージョン：2026-11-03.4</p>
+  <p class="ver" style="font-size:11px; color:var(--mut); margin:2px 0 0;">バージョン：2026-11-03.5</p>
 </header>
 
 <main>
@@ -1463,7 +1463,7 @@ function buildPrintArea(){
   }
   var html = '<div class="sheet-ui">'
     + "<p><strong>型紙の画面です。</strong>下に、このパズルの型紙（切り取り線と完成形の枠）が表示されています。</p>"
-    + "<p>「印刷する」ボタンを押すと、印刷専用のタブが開きます。そのタブで「印刷する」を押すと、印刷ダイアログが出ます。iPhoneのSafariでは、画面下の<strong>共有ボタン</strong>から<strong>「プリント」</strong>を選んでも、この型紙だけを印刷できます。</p>"
+    + "<p>「印刷する」ボタンを押すと、印刷専用のタブが開きます。そのタブで「印刷する」を押すと、印刷ダイアログが出ます。iPhoneのSafariでは、画面下の<strong>共有ボタン</strong>から<strong>「プリント」</strong>を選んでも、この型紙だけを印刷できます。アプリ内ブラウザでは印刷が始まらないことがあります。その場合は、共有ボタンから<strong>Safariで開き直して</strong>からお試しください。</p>"
     + "<p>チャットアプリのプレビュー画面では印刷ができないことがあります。その場合は、このファイルをSafariで開き直してからお試しください。</p>"
     + '<p id="sheetFallback" style="display:none; background:#fdecec; border:1px solid #d66; border-radius:8px; padding:8px 10px;"><strong>印刷専用のタブを開けませんでした。</strong>アプリはそのまま使えます。この画面を表示したまま、共有ボタン（Safari）やブラウザのメニューから「プリント／印刷」を選ぶと、この型紙だけを印刷できます。</p>'
     + '<div class="row"><button type="button" id="btnSheetPrint">印刷する</button>'
@@ -1518,7 +1518,7 @@ function openPrintWindow(){
     + ".pbtn{font-size:13pt; font-weight:700; padding:2.5mm 8mm; margin-bottom:5mm; border:2px solid #2f5da3; border-radius:2.5mm; background:#fff; color:#2f5da3; cursor:pointer;}"
     + "@page{margin:12mm;} @media print{ .note, .pbtn{display:none;} }"
     + "</style></head><body>"
-    + "<div class=\"note\">印刷専用の画面です。下の「印刷する」ボタンを押すと印刷ダイアログが開きます。印刷が終わったら、このタブを閉じてかまいません。</div>"
+    + "<div class=\"note\">印刷専用の画面です。下の「印刷する」ボタンを押すと印刷ダイアログが開きます。印刷が終わったら、このタブを閉じてかまいません。<br>※アプリ内ブラウザ（チャットアプリの中で開いた画面）では、このボタンを押しても印刷が始まらないことがあります。その場合は、画面下の共有ボタンから「Safariで開く」を選んで開き直してから、もう一度お試しください。</div>"
     + "<button class=\"pbtn\" onclick=\"window.print()\">印刷する</button>"
     + S.sheetHTML
     + "</body></html>";
