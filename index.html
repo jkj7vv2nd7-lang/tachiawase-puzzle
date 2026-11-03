@@ -1460,8 +1460,9 @@ function buildPrintArea(){
   }
   var html = '<div class="sheet-ui">'
     + "<p><strong>型紙の画面です。</strong>下に、このパズルの型紙（切り取り線と完成形の枠）が表示されています。</p>"
-    + "<p>「印刷する」ボタンを押すと、印刷専用のタブが開いて印刷ダイアログが表示されます。iPhoneのSafariでは、画面下の<strong>共有ボタン</strong>から<strong>「プリント」</strong>を選んでも、この型紙だけを印刷できます。</p>"
+    + "<p>「印刷する」ボタンを押すと、印刷専用のタブが開きます。そのタブで「印刷する」を押すと、印刷ダイアログが出ます。iPhoneのSafariでは、画面下の<strong>共有ボタン</strong>から<strong>「プリント」</strong>を選んでも、この型紙だけを印刷できます。</p>"
     + "<p>チャットアプリのプレビュー画面では印刷ができないことがあります。その場合は、このファイルをSafariで開き直してからお試しください。</p>"
+    + '<p id="sheetFallback" style="display:none; background:#fdecec; border:1px solid #d66; border-radius:8px; padding:8px 10px;"><strong>印刷専用のタブを開けませんでした。</strong>アプリはそのまま使えます。この画面を表示したまま、共有ボタン（Safari）やブラウザのメニューから「プリント／印刷」を選ぶと、この型紙だけを印刷できます。</p>'
     + '<div class="row"><button type="button" id="btnSheetPrint">印刷する</button>'
     + '<button type="button" id="btnSheetBack" class="back">← パズルにもどる</button></div></div>';
   var sheet = "<h1>三平方の裁ち合わせパズル ― 型紙</h1>";
@@ -1490,10 +1491,20 @@ function buildPrintArea(){
 // 以前は本体ページの @media print 表示切替で印刷していたが、Edgeの実印刷で
 // 「プレビューには出るのに紙は白紙」になる症状が出たため、隠し要素の切替・画面用CSS・
 // アニメーションを一切含まない独立文書から印刷する形に改めた。
+// 安全策（第3報対応）：アプリ内ブラウザ等、複数ウィンドウに未対応の環境では
+// window.open が「同じウィンドウ」を返すことがあり、そのまま document.write すると
+// アプリ本体が型紙文書に置き換わってしまう。必ず別ウィンドウであることを確認し、
+// 確認できない場合は何も書き込まず、案内だけを出す。また印刷専用タブ側でも
+// 自動では印刷せず、利用者がボタンを押して印刷する形にする（突然の画面遷移を防ぐ）。
+function showPrintFallback(){
+  var el = document.getElementById("sheetFallback");
+  if (el) { el.style.display = "block"; el.scrollIntoView({ behavior: "smooth", block: "center" }); }
+}
 function openPrintWindow(){
   if (!S.sheetHTML) buildPrintArea();
-  var w = window.open("", "_blank");
-  if (!w) { window.print(); return; } // 別タブが開けない環境では従来動作にフォールバック
+  var w = null;
+  try { w = window.open("", "_blank"); } catch (e) { w = null; }
+  if (!w || w === window) { showPrintFallback(); return; }
   var doc = "<!DOCTYPE html><html lang=\"ja\"><head><meta charset=\"UTF-8\">"
     + "<title>三平方の裁ち合わせパズル ― 型紙</title>"
     + "<style>"
@@ -1501,15 +1512,20 @@ function openPrintWindow(){
     + "h1{font-size:17pt; margin:0 0 2mm;} h2{font-size:12.5pt; margin:5mm 0 1.5mm;} p{font-size:10pt; margin:1mm 0;}"
     + "svg{display:block;} .cutline{stroke:#000; fill:none;}"
     + ".note{font-size:10.5pt; color:#444; border:1px solid #999; border-radius:2mm; padding:2.5mm 3mm; margin-bottom:5mm;}"
-    + "@page{margin:12mm;} @media print{ .note{display:none;} }"
+    + ".pbtn{font-size:13pt; font-weight:700; padding:2.5mm 8mm; margin-bottom:5mm; border:2px solid #2f5da3; border-radius:2.5mm; background:#fff; color:#2f5da3; cursor:pointer;}"
+    + "@page{margin:12mm;} @media print{ .note, .pbtn{display:none;} }"
     + "</style></head><body>"
-    + "<div class=\"note\">印刷専用の画面です。印刷ダイアログが自動で開きます。開かない場合は、このタブを選んだまま Ctrl+P（Macは ⌘P）を押してください。印刷が終わったら、このタブを閉じてかまいません。</div>"
+    + "<div class=\"note\">印刷専用の画面です。下の「印刷する」ボタンを押すと印刷ダイアログが開きます。印刷が終わったら、このタブを閉じてかまいません。</div>"
+    + "<button class=\"pbtn\" onclick=\"window.print()\">印刷する</button>"
     + S.sheetHTML
-    + "<script>window.addEventListener('load', function(){ setTimeout(function(){ window.print(); }, 300); });<\/script>"
     + "</body></html>";
-  w.document.open();
-  w.document.write(doc);
-  w.document.close();
+  try {
+    w.document.open();
+    w.document.write(doc);
+    w.document.close();
+  } catch (e) {
+    showPrintFallback();
+  }
 }
 
 /* ============ タブ生成と起動 ============ */
