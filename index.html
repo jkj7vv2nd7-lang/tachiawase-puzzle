@@ -1,0 +1,1546 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>三平方の裁ち合わせパズル</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<link rel="icon" type="image/png" href="./icon.png">
+<link rel="apple-touch-icon" href="./icon-180.png">
+<style>
+  :root{
+    --bg:#fdf6ec; --card:#fffdf8; --ink:#33302a; --sub:#7a7263;
+    --accent:#e8873a; --accent2:#4a7fd4; --line:#e5d9c3;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0; padding:0;}
+  body{background:var(--bg); color:var(--ink); font-family:"Hiragino Maru Gothic ProN","Hiragino Sans","Yu Gothic UI","Yu Gothic",sans-serif; line-height:1.7;}
+  #boot-error{display:none; margin:24px; padding:16px; background:#fdecec; border:1px solid #e5a3a3; border-radius:10px; font-size:14px;}
+  header{padding:18px 16px 6px; text-align:center;}
+  header h1{font-size:24px; margin:0 0 2px; letter-spacing:.04em;}
+  header .tagline{color:var(--sub); font-size:13.5px; margin:0;}
+  main{max-width:860px; margin:0 auto; padding:8px 12px 40px;}
+  .card{background:var(--card); border:1px solid var(--line); border-radius:14px; padding:14px 16px; margin:12px 0;}
+  .card h2{font-size:16px; margin:0 0 6px;}
+  .card p{font-size:14px; margin:6px 0;}
+  /* パズル選択 */
+  #tabs{display:flex; flex-wrap:wrap; gap:8px; margin:12px 0 4px;}
+  .tab{flex:1 1 40%; border:2px solid var(--line); background:var(--card); border-radius:12px; padding:9px 10px; cursor:pointer; text-align:left; font-family:inherit;}
+  .tab .t{display:block; font-size:15px; font-weight:700;}
+  .tab .s{display:block; font-size:11.5px; color:var(--sub); margin-top:1px;}
+  .tab.on{border-color:var(--accent); background:#fff6ea;}
+  /* プレイボード */
+  #boardWrap{background:var(--card); border:1px solid var(--line); border-radius:14px; padding:8px; margin:10px 0;}
+  svg#board{display:block; width:100%; height:auto; touch-action:none; user-select:none; -webkit-user-select:none;}
+  svg#board polygon.piece{cursor:grab; stroke:#fffdf8; stroke-width:.045; stroke-linejoin:round;}
+  svg#board polygon.piece.sel{stroke:#33302a; stroke-width:.07;}
+  svg#board polygon.piece.done{cursor:default;}
+  .ghost{fill:none; stroke:#cdbfa4; stroke-width:.035; stroke-dasharray:.14 .1;}
+  .targetFrame{fill:rgba(74,127,212,.06); stroke:var(--accent2); stroke-width:.06; stroke-dasharray:.22 .12; stroke-linejoin:round;}
+  .lbl{fill:var(--sub); text-anchor:middle; font-weight:700;}
+  /* 操作ボタン */
+  #controls{display:flex; flex-wrap:wrap; gap:8px; margin:10px 0;}
+  #controls button{flex:1 1 30%; font-family:inherit; font-size:15px; font-weight:700; border-radius:10px; border:2px solid var(--line); background:var(--card); color:var(--ink); padding:11px 6px; cursor:pointer;}
+  #controls button:active{transform:translateY(1px);}
+  #btnRotate{border-color:var(--accent); color:#b25e14;}
+  #btnSolve{border-color:var(--accent2); color:#2f5da3;}
+  #banner{display:none; text-align:center; font-size:19px; font-weight:800; color:#2e7d43; background:#e9f7ec; border:1px solid #a9d8b4; border-radius:12px; padding:10px; margin:10px 0;}
+  #explain{font-size:14px;}
+  .hint{font-size:12.5px; color:var(--sub);}
+  /* 印刷用 */
+  #printArea{display:none;}
+  #printArea .cutline{stroke:#000; fill:none;}
+  @page{ margin:12mm; }
+  /* 型紙画面（画面表示モード）：印刷ボタンで開く。WebView等で window.print が効かない環境でも型紙を見られる。
+     画面専用の指定は @media screen で囲み、印刷レイアウトに一切持ち込まない（印刷時の白紙化の遠因になるため） */
+  @media screen{
+    body.sheet header, body.sheet main, body.sheet #boot-error{display:none;}
+    body.sheet{background:#fff;}
+    body.sheet #printArea{display:block; color:#000; max-width:820px; margin:0 auto; padding:14px 14px 40px; font-family:"Yu Gothic","Hiragino Sans",sans-serif;}
+    body.sheet #printArea h1{font-size:20px; margin:0 0 4px;}
+    body.sheet #printArea h2{font-size:16px; margin:20px 0 4px;}
+    body.sheet #printArea p{font-size:13.5px; margin:2px 0;}
+    body.sheet #printArea svg{display:block; max-width:100%; height:auto;}
+    .sheet-ui{background:#fff6ea; border:1px solid var(--line); border-radius:12px; padding:12px 14px; margin-bottom:16px;}
+    .sheet-ui p{font-size:13.5px; margin:4px 0;}
+    .sheet-ui .row{display:flex; flex-wrap:wrap; gap:8px; margin-top:10px;}
+    .sheet-ui button{flex:1 1 40%; font-family:inherit; font-size:15px; font-weight:700; border-radius:10px; border:2px solid var(--accent2); background:#fff; color:#2f5da3; padding:11px 6px; cursor:pointer;}
+    .sheet-ui button.back{border-color:var(--line); color:var(--ink);}
+  }
+  @media print{
+    body{background:#fff;}
+    header, main, #boot-error, .sheet-ui{display:none !important;}
+    #printArea{display:block !important; color:#000; font-family:"Yu Gothic","Hiragino Sans",sans-serif;}
+    #printArea h1{font-size:17pt; margin:0 0 2mm;}
+    #printArea h2{font-size:12.5pt; margin:5mm 0 1.5mm;}
+    #printArea p{font-size:10pt; margin:1mm 0;}
+    #printArea svg{display:block;}
+    .cutline{stroke:#000; fill:none;}
+  }
+</style>
+</head>
+<body>
+
+<div id="boot-error">アプリの読み込みで問題が起きました。お手数ですが、ページを再読み込みしてみてください。</div>
+
+<header>
+  <h1>三平方の裁ち合わせパズル</h1>
+  <p class="tagline">動かして、回して、三平方の定理を組み立てる</p>
+</header>
+
+<main>
+  <div class="card">
+    <h2>はじめに</h2>
+    <p>「裁ち合わせ（たちあわせ）」とは、ある図形を切り分けて、別の図形に組み替えるパズルです。江戸時代の和算でも楽しまれ、関孝和の高弟・建部賢弘（たけべ かたひろ）にも裁ち合わせの研究が伝わっています。切り分けた部品の面積は変わらない ― この当たり前の事実が、三平方の定理（ a²＋b²＝c² ）を目で見て確かめる「組み立てによる証明」になるのです。</p>
+    <p>部品を指やマウスで動かし、回転ボタンで向きを変えて、右側の青い枠の中にぴったり収めてください。全部の部品が吸着すると完成です。「答え合わせ」では、部品が正しい配置へ動くアニメーションが見られます。「型紙を印刷」では、切り取って遊べる型紙を印刷できます。</p>
+  </div>
+
+  <div id="tabs"></div>
+
+  <div id="boardWrap">
+    <svg id="board" aria-label="パズルの盤面"></svg>
+  </div>
+
+  <div id="banner">🎉 完成！ ぴったり組み上がりました</div>
+
+  <div id="controls">
+    <button id="btnRotate" type="button">⟳ 選んだ部品を回転</button>
+    <button id="btnSolve" type="button">答え合わせ</button>
+    <button id="btnReset" type="button">最初から</button>
+    <button id="btnPrint" type="button">型紙を印刷</button>
+  </div>
+  <p class="hint">使い方：部品をタップ（クリック）して選び、ドラッグで移動します。選んだ部品は「回転」ボタンで45°ずつ回ります。正しい場所の近くで手を離すと、ぴたっと吸着します。</p>
+
+  <div class="card">
+    <h2 id="explainTitle"></h2>
+    <p id="explain"></p>
+  </div>
+</main>
+
+<div id="printArea"></div>
+
+<script>
+"use strict";
+window.addEventListener("error", function(){ var e=document.getElementById("boot-error"); if(e) e.style.display="block"; });
+
+var PUZZLES = [
+ {
+  "id": "iso",
+  "title": "① 直角二等辺三角形の型",
+  "sub": "入門 ― 三角形4枚で斜辺の正方形",
+  "explain": "直角を挟む2辺（長さ1）の上に立つ2つの正方形を、それぞれ対角線で半分に切ると、直角二等辺三角形が4枚できます。その4枚の斜辺を外側に向けて並べると、ちょうど斜辺（√2）の上の正方形が完成します。面積で確かめると 1²＋1²＝2＝(√2)²。三平方の定理がいちばん素直に見える形です。",
+  "srcLabel": "直角を挟む2辺の正方形（各辺1）",
+  "tgtLabel": "斜辺の正方形（1辺 √2）",
+  "srcLabelPos": [
+   2,
+   0.55
+  ],
+  "tgtLabelPos": [
+   5.6,
+   0.55
+  ],
+  "viewBox": {
+   "w": 7.6,
+   "h": 4
+  },
+  "targetOutline": [
+   [
+    6.6,
+    2
+   ],
+   [
+    5.6,
+    3
+   ],
+   [
+    4.6,
+    2
+   ],
+   [
+    5.6,
+    1
+   ]
+  ],
+  "srcGhost": [
+   [
+    [
+     1,
+     1
+    ],
+    [
+     2,
+     1
+    ],
+    [
+     1,
+     2
+    ]
+   ],
+   [
+    [
+     2,
+     1
+    ],
+    [
+     2,
+     2
+    ],
+    [
+     1,
+     2
+    ]
+   ],
+   [
+    [
+     2,
+     1
+    ],
+    [
+     3,
+     1
+    ],
+    [
+     2,
+     2
+    ]
+   ],
+   [
+    [
+     2,
+     2
+    ],
+    [
+     3,
+     1
+    ],
+    [
+     3,
+     2
+    ]
+   ]
+  ],
+  "pieces": [
+   {
+    "name": "三角 1",
+    "color": "#e8873a",
+    "local": [
+     [
+      -0.3333333333333333,
+      -0.3333333333333333
+     ],
+     [
+      0.6666666666666667,
+      -0.3333333333333333
+     ],
+     [
+      -0.3333333333333333,
+      0.6666666666666667
+     ]
+    ],
+    "srcC": [
+     1.3333333333333333,
+     1.3333333333333333
+    ],
+    "tgtC": [
+     5.933333333333333,
+     2.3333333333333335
+    ],
+    "tgtRot": 0
+   },
+   {
+    "name": "三角 2",
+    "color": "#3f9e63",
+    "local": [
+     [
+      0.33333333333333337,
+      -0.6666666666666666
+     ],
+     [
+      0.33333333333333337,
+      0.33333333333333337
+     ],
+     [
+      -0.6666666666666666,
+      0.33333333333333337
+     ]
+    ],
+    "srcC": [
+     1.6666666666666665,
+     1.6666666666666665
+    ],
+    "tgtC": [
+     5.266666666666667,
+     2.3333333333333335
+    ],
+    "tgtRot": -90.00000000000001
+   },
+   {
+    "name": "三角 3",
+    "color": "#4a7fd4",
+    "local": [
+     [
+      -0.33333333333333326,
+      -0.3333333333333333
+     ],
+     [
+      0.6666666666666667,
+      -0.3333333333333333
+     ],
+     [
+      -0.33333333333333326,
+      0.6666666666666667
+     ]
+    ],
+    "srcC": [
+     2.333333333333333,
+     1.3333333333333333
+    ],
+    "tgtC": [
+     5.266666666666667,
+     1.6666666666666667
+    ],
+    "tgtRot": 180
+   },
+   {
+    "name": "三角 4",
+    "color": "#d4587a",
+    "local": [
+     [
+      -0.6666666666666667,
+      0.33333333333333337
+     ],
+     [
+      0.33333333333333326,
+      -0.6666666666666666
+     ],
+     [
+      0.33333333333333326,
+      0.33333333333333337
+     ]
+    ],
+    "srcC": [
+     2.666666666666667,
+     1.6666666666666665
+    ],
+    "tgtC": [
+     5.933333333333333,
+     1.6666666666666667
+    ],
+    "tgtRot": 90
+   }
+  ],
+  "printUnitMm": 26
+ },
+ {
+  "id": "p345",
+  "title": "② 3・4・5の型",
+  "sub": "ペリガル分割 ― いちばん有名な三平方の組み立て",
+  "explain": "数学者ペリガル（1801–1882）が1873年に発表した分割です。大きいほうの辺4の正方形を、その中心を通る2本の直線 ― 片方は斜辺に平行、もう片方は斜辺に垂直 ― で4部品に切ります。その4部品で小さいほうの辺3の正方形を囲むと、斜辺5の正方形が完成します。各部品の辺の長さは 3.5・0.5・2.5・2.5 で、外周では 2.5＋2.5＝5 とぴったり合うところが美しい仕組みです。3²＋4²＝5² の「組み立てによる証明」になっています。",
+  "srcLabel": "辺4の正方形（4分割）＋辺3の正方形",
+  "tgtLabel": "斜辺の正方形（1辺 5）",
+  "srcLabelPos": [
+   4.9,
+   0.55
+  ],
+  "tgtLabelPos": [
+   12.9,
+   0.55
+  ],
+  "viewBox": {
+   "w": 16.4,
+   "h": 7
+  },
+  "targetOutline": [
+   [
+    10.4,
+    1
+   ],
+   [
+    15.4,
+    1
+   ],
+   [
+    15.4,
+    6
+   ],
+   [
+    10.4,
+    6
+   ]
+  ],
+  "srcGhost": [
+   [
+    [
+     3.0000000000000004,
+     3.0000000000000004
+    ],
+    [
+     5,
+     4.5
+    ],
+    [
+     5,
+     5
+    ],
+    [
+     1.5000000000000004,
+     5
+    ]
+   ],
+   [
+    [
+     3.0000000000000004,
+     3.0000000000000004
+    ],
+    [
+     1.5000000000000007,
+     5
+    ],
+    [
+     1.0000000000000007,
+     5
+    ],
+    [
+     1.0000000000000004,
+     1.5000000000000007
+    ]
+   ],
+   [
+    [
+     3.0000000000000004,
+     3.0000000000000004
+    ],
+    [
+     1.0000000000000004,
+     1.5000000000000007
+    ],
+    [
+     1,
+     1.0000000000000007
+    ],
+    [
+     4.5,
+     1.0000000000000004
+    ]
+   ],
+   [
+    [
+     3.0000000000000004,
+     3.0000000000000004
+    ],
+    [
+     4.5,
+     1
+    ],
+    [
+     5,
+     1
+    ],
+    [
+     5,
+     4.5
+    ]
+   ],
+   [
+    [
+     5.800000000000001,
+     1.0000000000000004
+    ],
+    [
+     8.8,
+     1.0000000000000004
+    ],
+    [
+     8.8,
+     4
+    ],
+    [
+     5.800000000000001,
+     4
+    ]
+   ]
+  ],
+  "pieces": [
+   {
+    "name": "部品 1",
+    "color": "#e8873a",
+    "local": [
+     [
+      -0.3125,
+      -1.3125
+     ],
+     [
+      1.6875,
+      0.1875
+     ],
+     [
+      1.6875,
+      0.6875
+     ],
+     [
+      -1.8125,
+      0.6875
+     ]
+    ],
+    "srcC": [
+     3.3125000000000004,
+     4.3125
+    ],
+    "tgtC": [
+     14.3625,
+     5.1375
+    ],
+    "tgtRot": 143.13010235415598
+   },
+   {
+    "name": "部品 2",
+    "color": "#3f9e63",
+    "local": [
+     [
+      1.3125,
+      -0.3125
+     ],
+     [
+      -0.18749999999999978,
+      1.6875
+     ],
+     [
+      -0.6874999999999998,
+      1.6875
+     ],
+     [
+      -0.6875,
+      -1.8124999999999998
+     ]
+    ],
+    "srcC": [
+     1.6875000000000004,
+     3.3125000000000004
+    ],
+    "tgtC": [
+     11.262500000000001,
+     4.9625
+    ],
+    "tgtRot": 143.13010235415598
+   },
+   {
+    "name": "部品 3",
+    "color": "#4a7fd4",
+    "local": [
+     [
+      0.3125,
+      1.3125
+     ],
+     [
+      -1.6875,
+      -0.18749999999999978
+     ],
+     [
+      -1.6875000000000004,
+      -0.6874999999999998
+     ],
+     [
+      1.8125,
+      -0.6875
+     ]
+    ],
+    "srcC": [
+     2.6875000000000004,
+     1.6875000000000004
+    ],
+    "tgtC": [
+     11.4375,
+     1.8625000000000003
+    ],
+    "tgtRot": 143.13010235415595
+   },
+   {
+    "name": "部品 4",
+    "color": "#d4587a",
+    "local": [
+     [
+      -1.3125,
+      0.3125
+     ],
+     [
+      0.18749999999999956,
+      -1.6875000000000004
+     ],
+     [
+      0.6874999999999996,
+      -1.6875000000000004
+     ],
+     [
+      0.6875,
+      1.8124999999999996
+     ]
+    ],
+    "srcC": [
+     4.3125,
+     2.6875000000000004
+    ],
+    "tgtC": [
+     14.537499999999998,
+     2.0374999999999996
+    ],
+    "tgtRot": 143.130102354156
+   },
+   {
+    "name": "小さい正方形",
+    "color": "#8a6fd6",
+    "local": [
+     [
+      -1.4999999999999991,
+      -1.5
+     ],
+     [
+      1.5000000000000009,
+      -1.5
+     ],
+     [
+      1.5000000000000009,
+      1.5
+     ],
+     [
+      -1.4999999999999991,
+      1.5
+     ]
+    ],
+    "srcC": [
+     7.299999999999999,
+     2.5000000000000004
+    ],
+    "tgtC": [
+     12.9,
+     3.5
+    ],
+    "tgtRot": 53.130102354155994
+   }
+  ],
+  "printUnitMm": 13
+ },
+ {
+  "id": "p51213",
+  "title": "③ 5・12・13の型",
+  "sub": "ペリガル分割 ― 歯ごたえのある形",
+  "explain": "②と同じペリガルの仕組みを、5・12・13の直角三角形に応用したものです。辺12の正方形を中心を通る2直線で4部品に切り、辺5の正方形と合わせて斜辺13の正方形を作ります。部品の形は細長くなり、向きを合わせるのに少し工夫が要りますが、仕組みはまったく同じ ― 一般の直角三角形すべてに使える方法だということが実感できます。5²＋12²＝13² です。",
+  "srcLabel": "辺12の正方形（4分割）＋辺5の正方形",
+  "tgtLabel": "斜辺の正方形（1辺 13）",
+  "srcLabelPos": [
+   9.9,
+   0.55
+  ],
+  "tgtLabelPos": [
+   26.900000000000002,
+   0.55
+  ],
+  "viewBox": {
+   "w": 34.400000000000006,
+   "h": 15
+  },
+  "targetOutline": [
+   [
+    20.400000000000002,
+    1
+   ],
+   [
+    33.400000000000006,
+    1
+   ],
+   [
+    33.400000000000006,
+    14
+   ],
+   [
+    20.400000000000002,
+    14
+   ]
+  ],
+  "srcGhost": [
+   [
+    [
+     7.000000000000001,
+     7.000000000000001
+    ],
+    [
+     13,
+     9.5
+    ],
+    [
+     13,
+     13
+    ],
+    [
+     4.500000000000001,
+     13
+    ]
+   ],
+   [
+    [
+     7.000000000000001,
+     7.000000000000001
+    ],
+    [
+     4.500000000000002,
+     13
+    ],
+    [
+     1.0000000000000009,
+     13
+    ],
+    [
+     1.0000000000000009,
+     4.500000000000002
+    ]
+   ],
+   [
+    [
+     7.000000000000001,
+     7.000000000000001
+    ],
+    [
+     1.0000000000000009,
+     4.500000000000002
+    ],
+    [
+     1,
+     1.0000000000000018
+    ],
+    [
+     9.5,
+     1.0000000000000009
+    ]
+   ],
+   [
+    [
+     7.000000000000001,
+     7.000000000000001
+    ],
+    [
+     9.5,
+     1
+    ],
+    [
+     13,
+     1
+    ],
+    [
+     13,
+     9.5
+    ]
+   ],
+   [
+    [
+     13.8,
+     1.0000000000000009
+    ],
+    [
+     18.8,
+     1.0000000000000009
+    ],
+    [
+     18.8,
+     6.000000000000001
+    ],
+    [
+     13.8,
+     6.000000000000001
+    ]
+   ]
+  ],
+  "pieces": [
+   {
+    "name": "部品 1",
+    "color": "#e8873a",
+    "local": [
+     [
+      -1.9930555555555554,
+      -3.6597222222222214
+     ],
+     [
+      4.006944444444445,
+      -1.1597222222222214
+     ],
+     [
+      4.006944444444445,
+      2.3402777777777786
+     ],
+     [
+      -4.493055555555555,
+      2.3402777777777786
+     ]
+    ],
+    "srcC": [
+     8.993055555555557,
+     10.659722222222221
+    ],
+    "tgtC": [
+     30.152670940170943,
+     11.388354700854704
+    ],
+    "tgtRot": 157.38013505195957
+   },
+   {
+    "name": "部品 2",
+    "color": "#3f9e63",
+    "local": [
+     [
+      3.6597222222222223,
+      -1.9930555555555562
+     ],
+     [
+      1.1597222222222228,
+      4.006944444444444
+     ],
+     [
+      -2.3402777777777777,
+      4.006944444444444
+     ],
+     [
+      -2.3402777777777777,
+      -4.493055555555555
+     ]
+    ],
+    "srcC": [
+     3.3402777777777786,
+     8.993055555555557
+    ],
+    "tgtC": [
+     23.0116452991453,
+     10.752670940170939
+    ],
+    "tgtRot": 157.38013505195957
+   },
+   {
+    "name": "部品 3",
+    "color": "#4a7fd4",
+    "local": [
+     [
+      1.9930555555555554,
+      3.659722222222222
+     ],
+     [
+      -4.006944444444445,
+      1.1597222222222228
+     ],
+     [
+      -4.0069444444444455,
+      -2.3402777777777772
+     ],
+     [
+      4.493055555555555,
+      -2.340277777777778
+     ]
+    ],
+    "srcC": [
+     5.0069444444444455,
+     3.340277777777779
+    ],
+    "tgtC": [
+     23.64732905982906,
+     3.6116452991452994
+    ],
+    "tgtRot": 157.38013505195957
+   },
+   {
+    "name": "部品 4",
+    "color": "#d4587a",
+    "local": [
+     [
+      -3.659722222222225,
+      1.9930555555555554
+     ],
+     [
+      -1.159722222222225,
+      -4.0069444444444455
+     ],
+     [
+      2.340277777777775,
+      -4.0069444444444455
+     ],
+     [
+      2.340277777777775,
+      4.493055555555555
+     ]
+    ],
+    "srcC": [
+     10.659722222222225,
+     5.0069444444444455
+    ],
+    "tgtC": [
+     30.788354700854704,
+     4.247329059829059
+    ],
+    "tgtRot": 157.38013505195957
+   },
+   {
+    "name": "小さい正方形",
+    "color": "#8a6fd6",
+    "local": [
+     [
+      -2.5,
+      -2.5
+     ],
+     [
+      2.5,
+      -2.5
+     ],
+     [
+      2.5,
+      2.5
+     ],
+     [
+      -2.5,
+      2.5
+     ]
+    ],
+    "srcC": [
+     16.3,
+     3.500000000000001
+    ],
+    "tgtC": [
+     26.900000000000002,
+     7.500000000000003
+    ],
+    "tgtRot": 67.38013505195954
+   }
+  ],
+  "printUnitMm": 9.5
+ },
+ {
+  "id": "cross",
+  "title": "④ 赤十字を正方形に",
+  "sub": "古典 ― ギリシャ十字（ヒンドゥー問題）",
+  "explain": "正方形を5つ十字に並べた「ギリシャ十字」を5部品に切り分け、1辺√5の正方形に組み替える古典パズルで、サム・ロイド『Cyclopedia of Puzzles』（1914年）やデュードニー『Amusements in Mathematics』（1917年）に載る「ヒンドゥー問題」として知られます。腕の先の三角形は、切り口の真ん中を中心に半回転させると、十字の凹みの隅にぴたりと収まります。√5という長さは、1と2を直角を挟む2辺とする直角三角形の斜辺 ― つまりユークリッド『原論』第1巻命題47（三平方の定理）そのものから生まれます。ロイドは4部品に切り分ける版も発表していて、そちらは上級編として知られています。",
+  "srcLabel": "赤十字（正方形5枚・ギリシャ十字）",
+  "tgtLabel": "正方形（1辺 √5）",
+  "srcLabelPos": [
+   2.5,
+   0.55
+  ],
+  "tgtLabelPos": [
+   8.218033988749895,
+   0.55
+  ],
+  "viewBox": {
+   "w": 10.33606797749979,
+   "h": 5
+  },
+  "targetOutline": [
+   [
+    7.1,
+    1
+   ],
+   [
+    9.33606797749979,
+    1
+   ],
+   [
+    9.33606797749979,
+    3.23606797749979
+   ],
+   [
+    7.1,
+    3.23606797749979
+   ]
+  ],
+  "srcGhost": [
+   [
+    [
+     2,
+     3.5
+    ],
+    [
+     2,
+     3
+    ],
+    [
+     1,
+     3
+    ],
+    [
+     1.5,
+     2
+    ],
+    [
+     2,
+     2
+    ],
+    [
+     2,
+     1
+    ],
+    [
+     3,
+     1.5
+    ],
+    [
+     3,
+     2
+    ],
+    [
+     4,
+     2
+    ],
+    [
+     3.5,
+     3
+    ],
+    [
+     3,
+     3
+    ],
+    [
+     3,
+     4
+    ]
+   ],
+   [
+    [
+     4,
+     2
+    ],
+    [
+     4,
+     3
+    ],
+    [
+     3.5,
+     3
+    ]
+   ],
+   [
+    [
+     3,
+     4
+    ],
+    [
+     2,
+     4
+    ],
+    [
+     2,
+     3.5
+    ]
+   ],
+   [
+    [
+     1,
+     3
+    ],
+    [
+     1,
+     2
+    ],
+    [
+     1.5,
+     2
+    ]
+   ],
+   [
+    [
+     1.9999999999999998,
+     1
+    ],
+    [
+     2.9999999999999996,
+     1
+    ],
+    [
+     3,
+     1.5
+    ]
+   ]
+  ],
+  "pieces": [
+   {
+    "name": "中央の部品",
+    "color": "#8a6fd6",
+    "local": [
+     [
+      -0.5,
+      1
+     ],
+     [
+      -0.5,
+      0.5
+     ],
+     [
+      -1.5,
+      0.5
+     ],
+     [
+      -1,
+      -0.5
+     ],
+     [
+      -0.5,
+      -0.5
+     ],
+     [
+      -0.5,
+      -1.5
+     ],
+     [
+      0.5,
+      -1
+     ],
+     [
+      0.5,
+      -0.5
+     ],
+     [
+      1.5,
+      -0.5
+     ],
+     [
+      1,
+      0.5
+     ],
+     [
+      0.5,
+      0.5
+     ],
+     [
+      0.5,
+      1.5
+     ]
+    ],
+    "srcC": [
+     2.5,
+     2.5
+    ],
+    "tgtC": [
+     8.218033988749895,
+     2.118033988749895
+    ],
+    "tgtRot": -26.56505117707799
+   },
+   {
+    "name": "三角 1",
+    "color": "#e8873a",
+    "local": [
+     [
+      0.16666666666666674,
+      -0.6666666666666666
+     ],
+     [
+      0.16666666666666674,
+      0.33333333333333337
+     ],
+     [
+      -0.33333333333333326,
+      0.33333333333333337
+     ]
+    ],
+    "srcC": [
+     3.833333333333333,
+     2.6666666666666665
+    ],
+    "tgtC": [
+     9.186996778999804,
+     2.5652475842498528
+    ],
+    "tgtRot": 153.43494882292197
+   },
+   {
+    "name": "三角 2",
+    "color": "#3f9e63",
+    "local": [
+     [
+      0.6666666666666666,
+      0.16666666666666674
+     ],
+     [
+      -0.33333333333333337,
+      0.16666666666666674
+     ],
+     [
+      -0.33333333333333337,
+      -0.33333333333333326
+     ]
+    ],
+    "srcC": [
+     2.3333333333333335,
+     3.833333333333333
+    ],
+    "tgtC": [
+     7.770820393249936,
+     3.0869967789998034
+    ],
+    "tgtRot": 153.43494882292197
+   },
+   {
+    "name": "三角 3",
+    "color": "#4a7fd4",
+    "local": [
+     [
+      -0.16666666666666674,
+      0.6666666666666667
+     ],
+     [
+      -0.16666666666666674,
+      -0.33333333333333337
+     ],
+     [
+      0.33333333333333326,
+      -0.33333333333333337
+     ]
+    ],
+    "srcC": [
+     1.1666666666666667,
+     2.3333333333333335
+    ],
+    "tgtC": [
+     7.249071198499986,
+     1.670820393249937
+    ],
+    "tgtRot": 153.43494882292197
+   },
+   {
+    "name": "三角 4",
+    "color": "#d4587a",
+    "local": [
+     [
+      -0.6666666666666666,
+      -0.16666666666666674
+     ],
+     [
+      0.33333333333333326,
+      -0.16666666666666674
+     ],
+     [
+      0.33333333333333337,
+      0.33333333333333326
+     ]
+    ],
+    "srcC": [
+     2.6666666666666665,
+     1.1666666666666667
+    ],
+    "tgtC": [
+     8.665247584249853,
+     1.149071198499986
+    ],
+    "tgtRot": 153.43494882292202
+   }
+  ],
+  "printUnitMm": 30
+ }
+];
+
+/* ============ 状態 ============ */
+var S = { pi: 0, pieces: [], sel: -1, solved: false, anim: null };
+var board = document.getElementById("board");
+var NS = "http://www.w3.org/2000/svg";
+
+function el(name, attrs){
+  var n = document.createElementNS(NS, name);
+  for (var k in attrs) n.setAttribute(k, attrs[k]);
+  return n;
+}
+function ptsAttr(poly){ return poly.map(function(p){ return p[0].toFixed(4) + "," + p[1].toFixed(4); }).join(" "); }
+function rotPt(p, deg){
+  var r = deg * Math.PI / 180, c = Math.cos(r), s = Math.sin(r);
+  return [p[0]*c - p[1]*s, p[0]*s + p[1]*c];
+}
+function angDiff(a, b){
+  var d = (a - b) % 360; if (d > 180) d -= 360; if (d < -180) d += 360; return Math.abs(d);
+}
+
+/* ============ パズル読み込み ============ */
+function loadPuzzle(i){
+  S.pi = i; S.sel = -1; S.solved = false; S.anim = null;
+  var P = PUZZLES[i];
+  S.pieces = P.pieces.map(function(pc){
+    return { def: pc, x: pc.srcC[0], y: pc.srcC[1], rot: 0, done: false };
+  });
+  document.getElementById("banner").style.display = "none";
+  document.getElementById("explainTitle").textContent = P.title;
+  document.getElementById("explain").textContent = P.explain;
+  var tabs = document.querySelectorAll(".tab");
+  for (var t = 0; t < tabs.length; t++) tabs[t].classList.toggle("on", t === i);
+  render();
+  buildPrintArea();
+}
+
+function piecePolyWorld(st){
+  return st.def.local.map(function(p){
+    var q = rotPt(p, st.rot);
+    return [q[0] + st.x, q[1] + st.y];
+  });
+}
+
+function render(){
+  var P = PUZZLES[S.pi];
+  while (board.firstChild) board.removeChild(board.firstChild);
+  board.setAttribute("viewBox", "0 0 " + P.viewBox.w.toFixed(2) + " " + P.viewBox.h.toFixed(2));
+  var world = el("g", { transform: "translate(0 " + P.viewBox.h.toFixed(3) + ") scale(1 -1)" });
+  board.appendChild(world);
+  // 元の図形のゴースト
+  P.srcGhost.forEach(function(g){
+    world.appendChild(el("polygon", { points: ptsAttr(g), "class": "ghost" }));
+  });
+  // 目標の枠
+  world.appendChild(el("polygon", { points: ptsAttr(P.targetOutline), "class": "targetFrame" }));
+  // 部品
+  S.pieces.forEach(function(st, idx){
+    var poly = el("polygon", {
+      points: ptsAttr(piecePolyWorld(st)),
+      fill: st.def.color, "class": "piece" + (idx === S.sel ? " sel" : "") + (st.done ? " done" : ""),
+      "data-idx": idx
+    });
+    poly.addEventListener("pointerdown", onPieceDown);
+    world.appendChild(poly);
+  });
+  // ラベル（文字は反転させないよう個別に変換）。字の大きさは盤面の幅に比例させる
+  var lblFs = Math.min(0.62, Math.max(0.24, P.viewBox.w * 0.030));
+  function label(pos, text){
+    var t = el("text", { x: pos[0], y: P.viewBox.h - pos[1] + 0.14, "class": "lbl", "font-size": lblFs.toFixed(3) });
+    t.textContent = text; board.appendChild(t);
+  }
+  label(P.srcLabelPos, P.srcLabel);
+  label(P.tgtLabelPos, P.tgtLabel);
+}
+
+/* ============ ドラッグ ============ */
+var drag = null;
+function toLocal(evt){
+  var pt = board.createSVGPoint();
+  pt.x = evt.clientX; pt.y = evt.clientY;
+  var m = board.getScreenCTM(); if (!m) return null;
+  var p = pt.matrixTransform(m.inverse());
+  var P = PUZZLES[S.pi];
+  return [p.x, P.viewBox.h - p.y]; // 数学座標へ
+}
+function onPieceDown(evt){
+  var idx = parseInt(evt.currentTarget.getAttribute("data-idx"), 10);
+  var st = S.pieces[idx];
+  S.sel = idx;
+  if (st.done || S.anim) { render(); return; }
+  var lp = toLocal(evt); if (!lp) return;
+  drag = { idx: idx, dx: st.x - lp[0], dy: st.y - lp[1], moved: false };
+  evt.preventDefault();
+  render();
+}
+// ドラッグ中の再描画で部品要素が作り直されても追従できるよう、移動と終了はwindowで受ける
+window.addEventListener("pointermove", function(evt){
+  if (!drag) return;
+  var lp = toLocal(evt); if (!lp) return;
+  var st = S.pieces[drag.idx];
+  st.x = lp[0] + drag.dx; st.y = lp[1] + drag.dy; drag.moved = true;
+  render();
+});
+window.addEventListener("pointerup", function(){
+  if (!drag) return;
+  var st = S.pieces[drag.idx];
+  drag = null;
+  trySnap(st);
+  render(); checkSolved();
+});
+window.addEventListener("pointercancel", function(){ drag = null; });
+
+function trySnap(st){
+  if (st.done) return false;
+  var d = Math.hypot(st.x - st.def.tgtC[0], st.y - st.def.tgtC[1]);
+  if (d < 0.55 && angDiff(st.rot, st.def.tgtRot) <= 26){
+    animatePiece(st, st.def.tgtC[0], st.def.tgtC[1], nearestAngle(st.rot, st.def.tgtRot), 160, function(){
+      st.x = st.def.tgtC[0]; st.y = st.def.tgtC[1]; st.rot = st.def.tgtRot; st.done = true;
+      render(); checkSolved();
+    });
+    return true;
+  }
+  return false;
+}
+function nearestAngle(cur, target){
+  var t = target;
+  while (t - cur > 180) t -= 360;
+  while (cur - t > 180) t += 360;
+  return t;
+}
+
+/* ============ アニメーション ============ */
+function animatePiece(st, tx, ty, trot, dur, onDone){
+  var sx = st.x, sy = st.y, sr = st.rot, t0 = performance.now();
+  function frame(now){
+    var k = Math.min(1, (now - t0) / dur);
+    var e = 1 - Math.pow(1 - k, 3);
+    st.x = sx + (tx - sx) * e; st.y = sy + (ty - sy) * e; st.rot = sr + (trot - sr) * e;
+    render();
+    if (k < 1) requestAnimationFrame(frame);
+    else if (onDone) onDone();
+  }
+  requestAnimationFrame(frame);
+}
+function solveAll(){
+  if (S.anim) return;
+  var t0 = performance.now(), dur = 1300;
+  var starts = S.pieces.map(function(st){
+    return { st: st, sx: st.x, sy: st.y, sr: st.rot, tr: nearestAngle(st.rot, st.def.tgtRot) };
+  });
+  S.anim = true;
+  function frame(now){
+    var k = Math.min(1, (now - t0) / dur);
+    var e = k < 0.5 ? 4*k*k*k : 1 - Math.pow(-2*k + 2, 3) / 2;
+    starts.forEach(function(o){
+      o.st.x = o.sx + (o.st.def.tgtC[0] - o.sx) * e;
+      o.st.y = o.sy + (o.st.def.tgtC[1] - o.sy) * e;
+      o.st.rot = o.sr + (o.tr - o.sr) * e;
+    });
+    render();
+    if (k < 1) requestAnimationFrame(frame);
+    else {
+      S.anim = null;
+      S.pieces.forEach(function(st){ st.x = st.def.tgtC[0]; st.y = st.def.tgtC[1]; st.rot = st.def.tgtRot; st.done = true; });
+      render(); checkSolved();
+    }
+  }
+  requestAnimationFrame(frame);
+}
+function checkSolved(){
+  if (S.pieces.length && S.pieces.every(function(st){ return st.done; })){
+    if (!S.solved){
+      S.solved = true;
+      document.getElementById("banner").style.display = "block";
+    }
+  }
+}
+
+/* ============ ボタン ============ */
+document.getElementById("btnRotate").addEventListener("click", function(){
+  if (S.sel < 0 || S.anim) return;
+  var st = S.pieces[S.sel];
+  if (st.done) return;
+  var target = st.rot - 45; // 画面上は反時計回りに見える向き
+  var sx = st.rot, t0 = performance.now(), dur = 180;
+  (function frame(now){
+    var k = Math.min(1, (now - t0) / dur), e = 1 - Math.pow(1 - k, 2);
+    st.rot = sx + (target - sx) * e; render();
+    if (k < 1) requestAnimationFrame(frame);
+    else { st.rot = target % 360; trySnap(st); render(); checkSolved(); }
+  })(t0);
+});
+document.getElementById("btnSolve").addEventListener("click", solveAll);
+document.getElementById("btnReset").addEventListener("click", function(){ loadPuzzle(S.pi); });
+// 印刷ボタン：まず型紙だけの画面を開く（プレビュー等のWebViewでは window.print が無反応なことがあるため、
+// いきなり印刷ダイアログを呼ばず、型紙画面から印刷できる形にする）
+document.getElementById("btnPrint").addEventListener("click", function(){
+  buildPrintArea();
+  document.body.classList.add("sheet");
+  window.scrollTo(0, 0);
+});
+function closeSheet(){
+  document.body.classList.remove("sheet");
+  window.scrollTo(0, 0);
+}
+
+/* ============ 型紙（印刷用エリア） ============ */
+function svgOpen(wMm, hMm, vb){
+  return '<svg xmlns="http://www.w3.org/2000/svg" width="' + wMm.toFixed(1) + 'mm" height="' + hMm.toFixed(1) + 'mm" viewBox="0 0 ' + vb.w.toFixed(2) + ' ' + vb.h.toFixed(2) + '">';
+}
+function buildPrintArea(){
+  var P = PUZZLES[S.pi], mm = P.printUnitMm;
+  // 元図形の範囲と目標形の範囲
+  function bboxOf(polys){
+    var xs = [], ys = [];
+    polys.forEach(function(pl){ pl.forEach(function(p){ xs.push(p[0]); ys.push(p[1]); }); });
+    return { x0: Math.min.apply(null, xs), x1: Math.max.apply(null, xs), y0: Math.min.apply(null, ys), y1: Math.max.apply(null, ys) };
+  }
+  var sb = bboxOf(P.srcGhost), tb = bboxOf([P.targetOutline]);
+  function figSvg(bb, polys, dashedInner){
+    var w = (bb.x1 - bb.x0), h = (bb.y1 - bb.y0);
+    var s = svgOpen(w * mm, h * mm, { w: w, h: h });
+    polys.forEach(function(pl, i){
+      var pts = pl.map(function(p){ return (p[0] - bb.x0).toFixed(3) + "," + (h - (p[1] - bb.y0)).toFixed(3); }).join(" ");
+      var dash = (dashedInner && i > 0) ? "" : "";
+      s += '<polygon points="' + pts + '" class="cutline" stroke-width="' + (1.4 / mm).toFixed(3) + '"/>' + dash;
+    });
+    return s + "</svg>";
+  }
+  var html = '<div class="sheet-ui">'
+    + "<p><strong>型紙の画面です。</strong>下に、このパズルの型紙（切り取り線と完成形の枠）が表示されています。</p>"
+    + "<p>「印刷する」ボタンを押すと、印刷専用のタブが開いて印刷ダイアログが表示されます。iPhoneのSafariでは、画面下の<strong>共有ボタン</strong>から<strong>「プリント」</strong>を選んでも、この型紙だけを印刷できます。</p>"
+    + "<p>チャットアプリのプレビュー画面では印刷ができないことがあります。その場合は、このファイルをSafariで開き直してからお試しください。</p>"
+    + '<div class="row"><button type="button" id="btnSheetPrint">印刷する</button>'
+    + '<button type="button" id="btnSheetBack" class="back">← パズルにもどる</button></div></div>';
+  var sheet = "<h1>三平方の裁ち合わせパズル ― 型紙</h1>";
+  sheet += "<p>" + P.title + "（" + P.sub + "）</p>";
+  sheet += "<h2>1. 元の図形 ― 線に沿って切り分けてください</h2>";
+  sheet += "<p>" + P.srcLabel + "</p>";
+  sheet += figSvg(sb, P.srcGhost, false);
+  sheet += "<h2>2. 完成形の枠 ― この形に組み替えてください</h2>";
+  sheet += "<p>" + P.tgtLabel + "</p>";
+  sheet += figSvg(tb, [P.targetOutline], false);
+  sheet += '<h2>3. 実寸の確認</h2>';
+  sheet += '<p>下の線がちょうど5cmになっていれば、実寸で印刷されています。</p>';
+  sheet += '<svg xmlns="http://www.w3.org/2000/svg" width="60mm" height="8mm" viewBox="0 0 60 8">'
+        + '<line x1="5" y1="2" x2="55" y2="2" stroke="#000" stroke-width="0.6"/>'
+        + '<line x1="5" y1="0" x2="5" y2="4" stroke="#000" stroke-width="0.6"/>'
+        + '<line x1="55" y1="0" x2="55" y2="4" stroke="#000" stroke-width="0.6"/>'
+        + '<text x="30" y="7.6" font-size="3.2" text-anchor="middle" fill="#000">5 cm</text></svg>';
+  S.sheetHTML = sheet; // 型紙部分のみ（案内UIなし）。印刷専用ウィンドウで使う
+  document.getElementById("printArea").innerHTML = html + sheet;
+  var bp = document.getElementById("btnSheetPrint");
+  if (bp) bp.addEventListener("click", openPrintWindow);
+  var bb = document.getElementById("btnSheetBack");
+  if (bb) bb.addEventListener("click", closeSheet);
+}
+// 印刷は「型紙だけの最小構成の別ウィンドウ」を開いて行う。
+// 以前は本体ページの @media print 表示切替で印刷していたが、Edgeの実印刷で
+// 「プレビューには出るのに紙は白紙」になる症状が出たため、隠し要素の切替・画面用CSS・
+// アニメーションを一切含まない独立文書から印刷する形に改めた。
+function openPrintWindow(){
+  if (!S.sheetHTML) buildPrintArea();
+  var w = window.open("", "_blank");
+  if (!w) { window.print(); return; } // 別タブが開けない環境では従来動作にフォールバック
+  var doc = "<!DOCTYPE html><html lang=\"ja\"><head><meta charset=\"UTF-8\">"
+    + "<title>三平方の裁ち合わせパズル ― 型紙</title>"
+    + "<style>"
+    + "body{font-family:'Yu Gothic','Hiragino Sans',sans-serif; color:#000; margin:0;}"
+    + "h1{font-size:17pt; margin:0 0 2mm;} h2{font-size:12.5pt; margin:5mm 0 1.5mm;} p{font-size:10pt; margin:1mm 0;}"
+    + "svg{display:block;} .cutline{stroke:#000; fill:none;}"
+    + ".note{font-size:10.5pt; color:#444; border:1px solid #999; border-radius:2mm; padding:2.5mm 3mm; margin-bottom:5mm;}"
+    + "@page{margin:12mm;} @media print{ .note{display:none;} }"
+    + "</style></head><body>"
+    + "<div class=\"note\">印刷専用の画面です。印刷ダイアログが自動で開きます。開かない場合は、このタブを選んだまま Ctrl+P（Macは ⌘P）を押してください。印刷が終わったら、このタブを閉じてかまいません。</div>"
+    + S.sheetHTML
+    + "<script>window.addEventListener('load', function(){ setTimeout(function(){ window.print(); }, 300); });<\/script>"
+    + "</body></html>";
+  w.document.open();
+  w.document.write(doc);
+  w.document.close();
+}
+
+/* ============ タブ生成と起動 ============ */
+(function boot(){
+  try {
+    if (!PUZZLES) throw new Error("no data");
+    var tabs = document.getElementById("tabs");
+    PUZZLES.forEach(function(P, i){
+      var b = document.createElement("button");
+      b.type = "button"; b.className = "tab";
+      var t = document.createElement("span"); t.className = "t"; t.textContent = P.title;
+      var s = document.createElement("span"); s.className = "s"; s.textContent = P.sub;
+      b.appendChild(t); b.appendChild(s);
+      b.addEventListener("click", function(){ loadPuzzle(i); });
+      tabs.appendChild(b);
+    });
+    loadPuzzle(0);
+  } catch (e) {
+    document.getElementById("boot-error").style.display = "block";
+    if (window.console) console.error(e);
+  }
+})();
+
+/* テスト用フック */
+window.__state = S;
+window.__loadPuzzle = loadPuzzle;
+window.__solveNow = function(){
+  S.pieces.forEach(function(st){ st.x = st.def.tgtC[0]; st.y = st.def.tgtC[1]; st.rot = st.def.tgtRot; st.done = true; });
+  render(); checkSolved();
+};
+window.__PUZZLES = PUZZLES;
+</script>
+</body>
+</html>
